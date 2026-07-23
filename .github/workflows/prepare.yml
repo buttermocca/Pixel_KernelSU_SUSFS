@@ -33,6 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -41,38 +42,35 @@ jobs:
         id: set-matrix
         run: |
           echo "Reading config from ${{ inputs.config_file }}"
+
           if [ ! -f "${{ inputs.config_file }}" ]; then
-            echo "Error: Config file not found: ${{ inputs.config_file }}"
+            echo "Error: Config file not found."
             exit 1
           fi
-          
-          # Read the file content
-          MATRIX_JSON=$(cat "${{ inputs.config_file }}")
-          
-          # Compact the JSON to a single line to avoid issues
-          # If jq is not available, we might need another way, but ubuntu-latest usually has it.
-          if command -v jq &> /dev/null; then
-            MATRIX_JSON=$(echo "$MATRIX_JSON" | jq -c .)
-          else
-            # Fallback for simple minification if jq missing (unlikely on runner)
-            MATRIX_JSON=$(echo "$MATRIX_JSON" | tr -d '\n' | tr -d ' ')
-          fi
-          
-          echo "Matrix content: $MATRIX_JSON"
-          echo "matrix=$MATRIX_JSON" >> $GITHUB_OUTPUT
+
+          MATRIX_JSON=$(jq -c . "${{ inputs.config_file }}")
+
+          echo "Matrix content:"
+          echo "$MATRIX_JSON"
+
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
 
   build:
     needs: generate-matrix
+
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.generate-matrix.outputs.matrix) }}
+
     uses: ./.github/workflows/build.yml
+
     with:
-      repo: ${{ matrix.repo }}
       codename: ${{ matrix.codename }}
+      repo: ${{ matrix.repo }}
       ksu_commit: ${{ inputs.ksu_commit }}
       anykernel_commit: ${{ inputs.anykernel_commit }}
       patches_commit: ${{ inputs.patches_commit }}
       susfs_commit: ${{ inputs.susfs_commit }}
       feature_set: ${{ inputs.feature_set }}
+
     secrets: inherit
