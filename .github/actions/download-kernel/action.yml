@@ -3,19 +3,26 @@ description: 'Initialize and sync Android kernel source repository'
 
 inputs:
   repo:
-    description: 'Kernel repository'
     required: true
+  manifest_url:
+    required: false
+    default: ""
 
 runs:
   using: composite
   steps:
     - name: Initialize and Sync Kernel Repository
-      id: sync
       shell: bash
       working-directory: ${{ github.workspace }}/kernel
       run: |
-        # Initialize repo with the target branch
-        repo init -u https://android.googlesource.com/kernel/manifest -b ${{inputs.repo }} --depth=1
-        
-        # Sync kernel source
-        repo --trace sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
+        if [ -n "${{ inputs.manifest_url }}" ]; then
+          repo init -u https://android.googlesource.com/kernel/manifest --depth=1
+
+          curl -L "${{ inputs.manifest_url }}" -o .repo/manifests/default.xml
+
+          repo sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
+        else
+          repo init -u https://android.googlesource.com/kernel/manifest -b "${{ inputs.repo }}" --depth=1
+
+          repo sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
+        fi
