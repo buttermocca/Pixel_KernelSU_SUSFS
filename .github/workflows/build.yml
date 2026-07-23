@@ -382,7 +382,7 @@ jobs:
         echo "Repo Branch         : aosp-$KERNEL_VERSION-$ANDROID_VERSION-$OS_PATCH_LEVEL || 'normal'"
         echo "Deprecated          : $DEPRECATED_BRANCH"
         # Build info
-        echo "Build Type          : ${{ matrix.variant }}"
+        echo "Build Type          : echo "Codename : ${{ inputs.codename }}"
         # Features info
         echo "Features            : ${{ inputs.feature_set || 'None' }}"
         echo "KSUN Commit         : ${{ inputs.ksu_commit || 'canary' }}"
