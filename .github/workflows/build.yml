@@ -1,14 +1,9 @@
-name: Kernel Build Process
-permissions:
-  contents: write
-  actions: write
-
 on:
   workflow_call:
-          inputs:
-        codename:
+    inputs:
+      codename:
         required: true
-  type: string
+        type: string
       repo:
         required: true
         type: string
