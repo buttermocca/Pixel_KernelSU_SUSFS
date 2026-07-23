@@ -1,7 +1,8 @@
 {
   "include": [
     {
-      "repo": "common-android14-6.1"
+      "repo": "common-android14-6.1",
+      "codename": "tegu"
     }
   ]
 }
