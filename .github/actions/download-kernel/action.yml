@@ -15,14 +15,23 @@ runs:
       shell: bash
       working-directory: ${{ github.workspace }}/kernel
       run: |
+        set -e
+
         if [ -n "${{ inputs.manifest_url }}" ]; then
+          echo "Using manifest URL: ${{ inputs.manifest_url }}"
+
           repo init -u https://android.googlesource.com/kernel/manifest --depth=1
 
           curl -L "${{ inputs.manifest_url }}" -o .repo/manifests/default.xml
 
-          repo sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
-        else
-          repo init -u https://android.googlesource.com/kernel/manifest -b "${{ inputs.repo }}" --depth=1
+          repo sync -c -j"$(nproc --all)" --fail-fast --no-tags --force-sync --no-clone-bundle
 
-          repo sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
+        else
+          echo "Using branch: ${{ inputs.repo }}"
+
+          repo init -u https://android.googlesource.com/kernel/manifest \
+            -b "${{ inputs.repo }}" \
+            --depth=1
+
+          repo sync -c -j"$(nproc --all)" --fail-fast --no-tags --force-sync --no-clone-bundle
         fi
