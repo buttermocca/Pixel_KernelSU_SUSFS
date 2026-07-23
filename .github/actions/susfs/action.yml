@@ -1,5 +1,6 @@
 name: Setup SUSFS
 description: Clone and apply SUSFS patches with version-specific fixes
+
 inputs:
   android_version:
     description: 'Android version (e.g., android15)'
@@ -19,18 +20,15 @@ runs:
       run: |
         SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
         SUSFS_REPO="https://gitlab.com/simonpunk/susfs4ksu.git"
-        
+
         echo "Preparing SUSFS for branch: $SUSFS_BRANCH"
-        
-        # Parse commit map to find the commit for this branch
+
         COMMIT_MAP="${{ inputs.susfs_commit }}"
         TARGET_COMMIT=""
-        
+
         if [ -n "$COMMIT_MAP" ]; then
-          # Split by comma
           IFS=',' read -ra ENTRIES <<< "$COMMIT_MAP"
           for entry in "${ENTRIES[@]}"; do
-            # Split by colon
             IFS=':' read -r branch commit <<< "$entry"
             if [ "$branch" == "$SUSFS_BRANCH" ]; then
               TARGET_COMMIT="$commit"
@@ -38,7 +36,7 @@ runs:
             fi
           done
         fi
-        
+
         if [ -n "$TARGET_COMMIT" ]; then
           echo "Found specific commit for $SUSFS_BRANCH: $TARGET_COMMIT"
           git clone "$SUSFS_REPO" -b "$SUSFS_BRANCH" susfs4ksu
@@ -49,8 +47,8 @@ runs:
           echo "No specific commit found for $SUSFS_BRANCH, cloning latest..."
           git clone "$SUSFS_REPO" -b "$SUSFS_BRANCH" --depth=1 susfs4ksu
         fi
-        
-        SUSFS_VERSION="v2.1.0"
+
+        SUSFS_VERSION="v2.2.0"
         echo "SUSFS_VERSION=$SUSFS_VERSION" >> $GITHUB_ENV
 
     - name: Enable KernelSU SUSFS Config
@@ -70,20 +68,39 @@ runs:
         CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
         CONFIG_KSU_SUSFS_SUS_MAP=y
         EOF
-    
+
     - name: Apply Kernel SUSFS Patches
       shell: bash
       working-directory: ${{ github.workspace }}/kernel/aosp
       run: |
-        # Apply base SUSFS patches
         cp "${{ github.workspace }}/susfs4ksu/kernel_patches/fs/"* "${{ github.workspace }}/kernel/aosp/fs/"
         cp "${{ github.workspace }}/susfs4ksu/kernel_patches/include/linux/"* "${{ github.workspace }}/kernel/aosp/include/linux/"
-        cp ${{ github.workspace }}/susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./
-        patch -p1 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
+        cp "${{ github.workspace }}/susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch" ./
+        patch -p1 < "50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch" || true
 
     - name: Apply KSU SUSFS Patches
       shell: bash
       working-directory: ${{ github.workspace }}/kernel/aosp/KernelSU-Next
       run: |
-        cp ${{ github.workspace }}/kernel_patches/wild/ksun-5a4a718-susfs-f7ae19ef-gki-android14-6.1.patch ./
-        patch -p1 < ksun-5a4a718-susfs-f7ae19ef-gki-android14-6.1.patch
+        echo "Searching for KernelSU SUSFS patch..."
+
+        PATCH=$(find "${{ github.workspace }}/kernel_patches/wild" \
+            -maxdepth 1 \
+            -type f \
+            -name "ksun-*.patch" | sort | tail -n1)
+
+        if [ -z "$PATCH" ]; then
+            echo "ERROR: No KernelSU SUSFS patch found."
+            echo "Contents of kernel_patches/wild:"
+            ls -al "${{ github.workspace }}/kernel_patches/wild"
+            exit 1
+        fi
+
+        echo "Using patch:"
+        echo "$PATCH"
+
+        cp "$PATCH" ./
+
+        PATCH_FILE=$(basename "$PATCH")
+
+        patch -p1 < "$PATCH_FILE"
