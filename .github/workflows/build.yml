@@ -106,6 +106,9 @@ jobs:
       uses: ./.github/actions/download-kernel
       with:
         repo: "${{ inputs.repo }}"
+    - name: Show build scripts
+      run: |
+        find $GITHUB_WORKSPACE/kernel -name "build_*.sh"
 
     - name: Extract Kernel Version and Set File Name
       id: extract
