@@ -5,7 +5,10 @@ permissions:
 
 on:
   workflow_call:
-    inputs:
+          inputs:
+        codename:
+        required: true
+  type: string
       repo:
         required: true
         type: string
